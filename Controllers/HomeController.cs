@@ -20,8 +20,6 @@ namespace WebApplication1.Controllers
 
         public IActionResult Intro()
         {
-            ViewBag.data = "Data in ViewBag"; // способы передачи данных
-            ViewData["data"] = "Data in ViewData"; // к представлению
             return View();
         }
 
@@ -30,12 +28,39 @@ namespace WebApplication1.Controllers
             return View();
         }
 
+        public IActionResult PassData()
+        {
+            Models.Home.PassDataModel model = new()
+            {
+                Header = "Models",
+                Title = "Data Transfer models",
+                Products = new()
+                {
+                    new() { Name = "Зарядний кабель", Price = 210 },
+                    new() { Name = "Маніпулятор 'миша'", Price = 399.50 },
+                    new() { Name = "Наліпка 'Smiley'", Price = 2.95 },
+                    new() { Name = "Серветки для монітору", Price = 100 },
+                    new() { Name = "USB ліхтарик", Price = 49.50 },
+                    new() { Name = "Аккумулятор ААА", Price = 280 },
+                    new() { Name = "ОС Windows Home", Price = 1250 },
+                }
+            };
+            return View(model);
+        }
+
         public IActionResult Scheme()
         {
+            ViewBag.bagdata = "Data in ViewBag"; // способы передачи данных
+            ViewData["data"] = "Data in ViewData"; // к представлению
             return View();
         }
 
         public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        public IActionResult Razor()
         {
             return View();
         }
