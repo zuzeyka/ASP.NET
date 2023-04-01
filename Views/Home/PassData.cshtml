@@ -24,3 +24,23 @@
         <li>В теле представления обращаемся к модели через свойство Model</li>
     </ul>
 </p>
+<p>
+    <h1>Home-Work</h1>
+    <table>  
+    <thead>  
+      <tr>  
+        <th>Имя</th>  
+        <th>Цена</th>  
+      </tr>  
+    </thead>  
+    <tbody>
+            @foreach (var item in Model.Products)
+            {
+            <tr>  
+            <td>@item.Name</td>  
+            <td>@item.Price.ToString("F2")</td>  
+            </tr> 
+            }
+    </tbody>  
+  </table>  
+</p>
