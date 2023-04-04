@@ -1,0 +1,10 @@
+﻿@model WebApplication1.Models.Home.Product
+
+<div class="card" style="width: 18rem;">
+    <img class="card-img-top" src="/img/@(Model.Image ?? "7.png")" alt="Card image cap">
+    <div class="card-body">
+        <h5 class="card-title">@Model.Name</h5>
+        <p class="card-text">Лучший выбор: @Model.Name всего за @Model.Price грн</p>
+        <a href="#" class="btn btn-primary">Купить</a>
+    </div>
+</div>

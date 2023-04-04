@@ -36,4 +36,11 @@ th {
 tr:nth-child(even) {
     background-color: #4CAF50; /* Задаем цвет фона для каждой второй строки (псевдо-класс :nth-child(even)) */
     color: white; /* задаем белый цвет для текста строк на фоне #4CAF50 */
-}  
+}
+
+.products-container {
+    border: 1px solid tomato;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+}

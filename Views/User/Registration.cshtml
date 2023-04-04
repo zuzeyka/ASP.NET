@@ -1,0 +1,32 @@
+﻿
+@{
+    ViewData["Title"] = "Registration";
+}
+
+<div>
+    <h1 class="display-4">Registration of new user</h1>
+</div>
+<form>
+  <div class="form-group">
+    <label for="InputLogin">Login</label>
+    <input type="text" class="form-control" id="InputLogin" aria-describedby="loginHelp" placeholder="Enter login">
+  </div>
+  <div class="form-group">
+    <label for="InputPassword">Password</label>
+    <input type="password" class="form-control" id="InputPassword" placeholder="Password">
+  </div>
+  <div class="form-group">
+    <label for="RepeatPassword">Repeat Password</label>
+    <input type="password" class="form-control" id="RepeatPassword" placeholder="Repeat Password">
+  </div>
+  <div class="form-group">
+    <label for="EmailInput">Email address</label>
+    <input type="email" class="form-control" id="EmailInput" placeholder="name@example.com">
+  </div>
+  <div class="form-group">
+    <label for="NameTextarea">Name</label>
+    <input type="text" class="form-control" id="InputName" aria-describedby="nameHelp" placeholder="Enter your name">
+  </div>
+  <br />
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
