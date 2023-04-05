@@ -7,5 +7,9 @@
         public String RepeatPasswordMessage { get; set; } = null!;
         public String EmailMessage { get; set; } = null!;
         public String RealNameMessage { get; set; } = null!;
-    }
+        public IEnumerator<string> GetEnumerator()
+        {
+            return new List<string> { LoginMessage, PasswordMessage, RepeatPasswordMessage, EmailMessage, RealNameMessage }.GetEnumerator();
+        }
+    }	
 }

@@ -31,20 +31,32 @@
   <br />
   <button type="submit" class="btn btn-primary">Submit</button>
 </form>
-
+<br />
 @if (ViewData["registrationModel"] != null)
 {
     // была передача данных
     var registrationModel = ViewData["registrationModel"] as RegistrationModel;
+    var registerValidation = ViewData["registerValidation"] as RegisterValidationModel;
+    if (Convert.ToBoolean(ViewData["isModelValid"]) == false)
+    {
+        foreach (var item in registerValidation)
+        {
+           <div class="alert alert-primary" role="alert">
+             @item
+           </div>
+        }
+    }
     <p>
         Данные которые были переданны <br>
         @registrationModel.Login <br>
         @registrationModel.Password <br>
         @registrationModel.RepeatPassword <br>
         @registrationModel.Email <br>
-        @registrationModel.Login <br>
+        @registrationModel.RealName <br>
     </p>
 }
+
+
 
 <hr/>
 <h2>Щодо HTML форм</h2>
