@@ -1,11 +1,21 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
 using WebApplication1.Models.Home.User;
+using WebApplication1.Servises.Hash;
 
 namespace WebApplication1.Controllers
 {
     public class UserController : Controller
     {
+        private readonly IHashServise _hashService;
+        private readonly ILogger<UserController> _logger;
+
+        public UserController(IHashServise hashService, ILogger<UserController> logger)
+        {
+            _hashService = hashService;
+            _logger = logger;
+        }
+
         public IActionResult Index()
         {
             return View();
@@ -68,12 +78,35 @@ namespace WebApplication1.Controllers
                 if (registrationModel.Avatar.Length < 1024)
                 {
                     registerValidation.AvatarMessage = "You need image more than 1kb";
+                    isModelValid = false;
                 }
                 else
                 {
-                    String path = "wwwroot/avatars/" + registrationModel.Avatar.FileName;
+                    // Генеруємо для файла нове ім'я, але зберігаємо розширення
+                    String ext = Path.GetExtension(registrationModel.Avatar.FileName);
+                    // TODO: перевірити розширення на перелік дозволених
+                    String savedName = _hashService.Hash(
+                        registrationModel.Avatar.FileName + DateTime.Now)[..16]
+                        + ext;
+                    /* Д.З. Перед збереженням файлу пересвідчитись у тому, що
+                     * згенероване ім'я не зайняте. Перевірку зробити циклічною
+                     * на випадок повторних збігів перегенерованого імені.
+                     */
+                    String path = "wwwroot/avatars/" + savedName;
+                    FileInfo fileInfo = new FileInfo(path);
+                    if (fileInfo.Exists)
+                    {
+                        do
+                        {
+                            savedName = _hashService.Hash(
+                                registrationModel.Avatar.FileName + DateTime.Now)[..16]
+                                + ext;
+                            fileInfo = new FileInfo(path);
+                        } while (fileInfo.Exists);
+                    }
                     using FileStream fs = new(path, FileMode.Create);
                     registrationModel.Avatar.CopyTo(fs);
+                    ViewData["savedName"] = savedName;
                 }
             }
             

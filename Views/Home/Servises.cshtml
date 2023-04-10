@@ -1,0 +1,81 @@
+﻿@using WebApplication1.Servises
+@inject DateServise dateServise
+@inject TimeServise timeServise
+@inject StampServise stampServise
+@{
+    ViewData["Title"] = "ASP Servises";
+}
+
+<div>
+    <h1 class="display-4">@ViewData["Title"]</h1>
+</div>
+<p>
+    Сервисы (службы, поставщики) - обобщеное название классов (объектов),
+    которые являются зависимостями для других классов (объектов).
+    Как правило, речь идет про общеиспользуемые классы, зависимости от которых
+    наблюдаются у многожества других классов.
+</p>
+<p>
+    Работа с сервисами состоит из нескольких этапов:<br />
+    <ul>
+        <li>Оглашения сервиса</li>
+        <li>Регистрация сервиса</li>
+        <li>Внедрение сервиса</li>
+    </ul>
+    Для управления процессами создания (инстансации) объектов 
+    и передачи ссылкок на них (инъекция) в программе должен быть
+    специальный модуль - модуль инверсии управления. (управления чем? - созданием 
+    и уничтожением объектов)
+</p>
+<p>
+    Из-за распространености таких подходов, сами сервисы отделяются в папку (Services).
+    Например создадим несколько сервисов из ведомостей о времени.<br />
+    <ul>
+        <li>Создаем папку Servises в корне проекта</li>
+        <li>Создаем класс <code>DateServise</code></li>
+        <li>Регистрируем службу&emsp; = В Program.cs (или в старых проектах Startup.cs)</li>
+        <li>Находим сексию <code>builder.Services</code></li>
+        <li>Добавляем регистрацию службы:<code>builder.Services.AddTransient&lt;DateServise>();
+            builder.Services.AddScoped<TimeServise>();
+            builder.Services.AddSingleton<StampServise>();
+        </code></li>
+    </ul>
+    Внедрение рекомендуется делать через конструкторы (см. HomeController):
+    <ul>
+        <li>в классе объявляем readonly поле <code>private readonly DateServise _dateServise;</code></li>
+        <li>в конструкторе класса добавляется парамент <code>HomeController(..., DateServise dateServise)</code></li>
+        <li>который инициализирует поле <code>_dateServise = dateServise;</code></li>
+    </ul>
+</p>
+<p>
+    Другой способ инъекции - через поля (через свойства). Такой способ,
+    используется в представлениях с помощью инструкций, например:
+    <code>&commat;inject DateServise dateServise</code>
+</p>
+<p>
+    date_servise(ctrl): @ViewData["data_servise"]<br />
+    date_servise(view): @dateServise.GetMoment()<br />
+    <br />
+    date_hashcode(ctrl): @ViewData["data_hashcode"] <i>Разные хэш-коды говорят о том </i><br />
+    date_hashcode(view): @dateServise.GetHashCode() <i>что это разные объекты:</i> <b>Transient</b><br /> 
+    <br />
+    time_servise(ctrl): @ViewData["time_servise"]<br />
+    time_servise(view): @timeServise.GetMoment()<br />
+    <br />
+    time_hashcode(ctrl): @ViewData["time_hashcode"] <i> Одинаковые хэш-коды говорят о том что это одинаковые объекты</i><br />
+    time_hashcode(view): @timeServise.GetHashCode() <i>, коды меняются с обновлением страницы:</i> <b>Scoped</b><br /> 
+    <br />
+    stamp_servise(ctrl): @ViewData["stamp_servise"]<br />
+    stamp_servise(view): @stampServise.GetMoment()<br />
+    <br />
+    stamp_hashcode(ctrl): @ViewData["stamp_hashcode"] <i> Одинаковые хэш-коды говорят о том что это одинаковые объекты</i><br />
+    stamp_hashcode(view): @stampServise.GetHashCode() <i>, коды не меняются с обновлением страницы:</i> <b>Singleton</b><br /> 
+</p>
+<p>
+    Инверсия зависимостей (DIP, буква D в SOLID) - отказ от внедрения зависимойстей
+    от классов, а переход на зависимости от интерейфейсов<br />
+    <code>builder.Services.AddSingleton&lt;IHashService, Md5HashService>();</code>
+</p>
+<p>
+    MD5("123") = @ViewData["hash_service"]
+</p>

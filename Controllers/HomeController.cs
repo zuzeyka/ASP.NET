@@ -1,16 +1,26 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using WebApplication1.Models;
+using WebApplication1.Servises;
+using WebApplication1.Servises.Hash;
 
 namespace WebApplication1.Controllers
 {
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly DateServise _dateServise;
+        private readonly TimeServise _timeServise;
+        private readonly StampServise _stampServise;
+        private readonly IHashServise _hashServise;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger, DateServise dateServise, TimeServise timeServise, StampServise stampServise, IHashServise hashServise)
         {
             _logger = logger;
+            _dateServise = dateServise;
+            _timeServise = timeServise;
+            _stampServise = stampServise;
+            _hashServise = hashServise;
         }
 
         public IActionResult Index()
@@ -71,6 +81,21 @@ namespace WebApplication1.Controllers
                 }
             };
             return View(model);
+        }
+
+        public ViewResult Servises()
+        {
+            ViewData["data_servise"] = _dateServise.GetMoment();
+            ViewData["data_hashcode"] = _dateServise.GetHashCode();
+
+            ViewData["time_servise"] = _timeServise.GetMoment();
+            ViewData["time_hashcode"] = _timeServise.GetHashCode();
+
+            ViewData["stamp_servise"] = _stampServise.GetMoment();
+            ViewData["stamp_hashcode"] = _stampServise.GetHashCode();
+
+            ViewData["hash_service"] = _hashServise.Hash("123");
+            return View();
         }
 
         public IActionResult Scheme()
