@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using WebApplication1.Data;
 using WebApplication1.Models;
 using WebApplication1.Servises;
 using WebApplication1.Servises.Hash;
@@ -13,14 +14,16 @@ namespace WebApplication1.Controllers
         private readonly TimeServise _timeServise;
         private readonly StampServise _stampServise;
         private readonly IHashServise _hashServise;
+        private readonly DataContext _dataContext;
 
-        public HomeController(ILogger<HomeController> logger, DateServise dateServise, TimeServise timeServise, StampServise stampServise, IHashServise hashServise)
+        public HomeController(ILogger<HomeController> logger, DateServise dateServise, TimeServise timeServise, StampServise stampServise, IHashServise hashServise, DataContext dataContext = null)
         {
             _logger = logger;
             _dateServise = dateServise;
             _timeServise = timeServise;
             _stampServise = stampServise;
             _hashServise = hashServise;
+            _dataContext = dataContext;
         }
 
         public IActionResult Index()
@@ -102,6 +105,12 @@ namespace WebApplication1.Controllers
         {
             ViewBag.bagdata = "Data in ViewBag"; // способы передачи данных
             ViewData["data"] = "Data in ViewData"; // к представлению
+            return View();
+        }
+
+        public IActionResult DataContext()
+        {
+            ViewData["UsersCount"] = _dataContext.Users.Count();
             return View();
         }
 

@@ -1,0 +1,71 @@
+﻿@{
+    ViewData["Title"] = "Data Context";
+}
+<div class="text-center">
+    <h1 class="display-4">@ViewData["Title"]</h1>
+</div>
+<p>
+    При работе с веб-приложениями вопрос БД в большенстве случаем
+    решается удаленным хостингом - БД отдельно от бэкэнда сайта.
+    Рекомендованная в ASP технология - Entity Framework Core
+</p>
+<p>
+    Для установки инструментов EF Core подключаем пакеты NuGet
+</p>
+<ul>
+    <li>Microsoft.EntityFrameworkCore</li>
+    <li>Microsoft.EntityFrameworkCore.Tols - инструменты для PM консоли</li>
+    <li> В зависимости от типа БД:
+        Microsoft.EntityFrameworkCore.SqlServer (MS SQL Server)
+        Pomelo.EntityFrameworkCore.MySql (Oracle MySQL)
+    </li>
+    <li>
+        dotnet tool install --global dotnet-ef<br />
+        Аналог консоли PM, только для командой строки (одноразово)
+    </li>
+</ul>
+<p>
+    Описываем классы-сущности и класс-контекст. Создаем папку Data,
+    в ней Entity.
+    В папке Entity - класс User, в Data - DataContext
+</p>
+<p>
+    Поскольку ASP проект управляется инвенторов управления, конструирование
+    объектов должно быть перенесено на него. Соотвественно, конструкторы
+    контекста нужно делегировать родительскому классу <br />
+    <code>
+        public DataContext(DbContextOptions options) : base(options)<br />
+        {}<br />
+    </code>
+</p>
+<p>
+    Строка (строки) подключения принято устанавливать в файле "appsetings.json"
+    в этот файл следует добавить секцию <br />
+    <code>
+        "ConnectionStrings": {<br />
+        "MsDb": "Data Source=(LocalDB)\\MSSQLLocalDB;Initial Catalog=ef201asp;Integrated Security=True",<br />
+        "MySqlDb": "Server=aws.connect.psdb.cloud;Database=asp;user=r7yyi97v32x4pc6srp8a;password=pscale_pw_Srn4SlvStPFrsbZbUU4IDAtsFcjCQri0dYIHBXaVYOz;SslMode=VerifyFull;"<br />
+        }<br />
+    </code>
+    Строк подключения может быть несколько
+</p>
+<p>
+    Дальше переходим в Program.cs и регистрируем контекст данных.
+    Варианты см. в файле
+</p>
+<p>
+    Создаем и применяем миграции. Варианты с PM консолью было рассмотренно
+    при изучении ADO, тут приведем примеры с терминалом.<br />
+    Tools - Command Line - PowerShell<br />
+    Удостоверимся что все файлы сохранены, а лучше сделать Build, ибо
+    инструменты командной строки не выводят детальные ошибки.<br />
+    <code>
+        dotnet tool install --global dotnet-ef<br />
+        dotnet ef migrations add Initial<br />
+        dotnet ef database update<br />
+    </code>
+</p>
+<p>
+    Использование контекста - по правилам инъекции служб<br />
+    Пользоатели у БД: @ViewData["UsersCount"]
+</p>

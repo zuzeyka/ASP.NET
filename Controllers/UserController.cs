@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
+using WebApplication1.Data;
 using WebApplication1.Models.Home.User;
 using WebApplication1.Servises.Hash;
 
@@ -9,11 +10,13 @@ namespace WebApplication1.Controllers
     {
         private readonly IHashServise _hashService;
         private readonly ILogger<UserController> _logger;
+        private readonly DataContext _dataContext;
 
-        public UserController(IHashServise hashService, ILogger<UserController> logger)
+        public UserController(IHashServise hashService, ILogger<UserController> logger, DataContext dataContext = null)
         {
             _hashService = hashService;
             _logger = logger;
+            _dataContext = dataContext;
         }
 
         public IActionResult Index()
