@@ -3,6 +3,8 @@ using MySqlConnector;
 using WebApplication1.Data;
 using WebApplication1.Servises;
 using WebApplication1.Servises.Hash;
+using WebApplication1.Servises.KDF;
+using WebApplication1.Servises.Random;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +13,8 @@ builder.Services.AddScoped<TimeServise>();
 builder.Services.AddSingleton<StampServise>();
 
 builder.Services.AddSingleton<IHashServise, MD5HashServise>();
+builder.Services.AddSingleton<IRandomServise, RandomServiseV1>();
+builder.Services.AddSingleton<IKdfServise, HashKdfService>();
 
 // регистрация контекста с подключением к MS SQL Server
 /*

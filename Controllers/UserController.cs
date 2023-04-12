@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
 using WebApplication1.Data;
+using WebApplication1.Data.Entity;
 using WebApplication1.Models.Home.User;
 using WebApplication1.Servises.Hash;
+using WebApplication1.Servises.KDF;
+using WebApplication1.Servises.Random;
 
 namespace WebApplication1.Controllers
 {
@@ -11,12 +14,16 @@ namespace WebApplication1.Controllers
         private readonly IHashServise _hashService;
         private readonly ILogger<UserController> _logger;
         private readonly DataContext _dataContext;
+        private readonly IRandomServise _randomServise;
+        private readonly IKdfServise _kdfServise;
 
-        public UserController(IHashServise hashService, ILogger<UserController> logger, DataContext dataContext = null)
+        public UserController(IHashServise hashService, ILogger<UserController> logger, DataContext dataContext = null, IRandomServise randomServise = null, IKdfServise kdfServise = null)
         {
             _hashService = hashService;
             _logger = logger;
             _dataContext = dataContext;
+            _randomServise = randomServise;
+            _kdfServise = kdfServise;
         }
 
         public IActionResult Index()
@@ -76,6 +83,7 @@ namespace WebApplication1.Controllers
                 registerValidation.RealNameMessage = "Real Name field can't be empty";
                 isModelValid = false;
             }
+            String savedName = null;
             if (registrationModel.Avatar is not null)
             {
                 if (registrationModel.Avatar.Length < 1024)
@@ -85,25 +93,14 @@ namespace WebApplication1.Controllers
                 }
                 else
                 {
-                    // Генеруємо для файла нове ім'я, але зберігаємо розширення
-                    String ext = Path.GetExtension(registrationModel.Avatar.FileName);
-                    // TODO: перевірити розширення на перелік дозволених
-                    String savedName = _hashService.Hash(
-                        registrationModel.Avatar.FileName + DateTime.Now)[..16]
-                        + ext;
-                    /* Д.З. Перед збереженням файлу пересвідчитись у тому, що
-                     * згенероване ім'я не зайняте. Перевірку зробити циклічною
-                     * на випадок повторних збігів перегенерованого імені.
-                     */
+                    savedName = _randomServise.RandomAvatarName(registrationModel.Avatar.FileName, 16);
                     String path = "wwwroot/avatars/" + savedName;
                     FileInfo fileInfo = new FileInfo(path);
                     if (fileInfo.Exists)
                     {
                         do
                         {
-                            savedName = _hashService.Hash(
-                                registrationModel.Avatar.FileName + DateTime.Now)[..16]
-                                + ext;
+                            savedName = _randomServise.RandomAvatarName(registrationModel.Avatar.FileName, 16);
                             fileInfo = new FileInfo(path);
                         } while (fileInfo.Exists);
                     }
@@ -115,6 +112,23 @@ namespace WebApplication1.Controllers
             
             if (isModelValid)
             {
+                String salt = _randomServise.RandomString(16);
+                User user = new()
+                {
+                    Id = Guid.NewGuid(),
+                    Login = registrationModel.Login,
+                    RealName = registrationModel.RealName,
+                    Email = registrationModel.Email,
+                    EmailCode = _randomServise.ConfirmCode(6),
+                    PasswordSalt = salt,
+                    PasswordHash = _kdfServise.GetDerivedKey(registrationModel.Password, salt),
+                    Avatar = savedName,
+                    RegisterDt = DateTime.Now,
+                    LastEnterDt = null
+                };
+                _dataContext.Users.Add(user);
+                _dataContext.SaveChangesAsync();
+
                 return View(registrationModel);
             }
             else
