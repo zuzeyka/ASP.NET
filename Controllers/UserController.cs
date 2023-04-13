@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
 using System.Text.RegularExpressions;
 using WebApplication1.Data;
 using WebApplication1.Data.Entity;
@@ -140,6 +141,42 @@ namespace WebApplication1.Controllers
             ViewData["isModelValid"] = isModelValid;
             // способ перейти на View под другим именем
             return View("Registration");
+        }
+        [HttpPost] // метод доступный только для POST запросов
+        public String AuthUser()
+        {
+            // альтернативный (для моделей) способ получения параметров запроса\
+            StringValues lovinValues = Request.Form["user-login"];
+            // коллекция loginValues формируется при любом ключе, но для
+            // неправильных (отсутсвующих) ключей она пустая
+            if (lovinValues.Count == 0)
+            {
+                // нет логина в составе полей
+                return "Missed required parameter: user-login";
+            }
+            String login = lovinValues[0] ?? "";
+
+            StringValues passValues = Request.Form["user-password"];
+            if (passValues.Count == 0)
+            {
+                // нет логина в составе полей
+                return "Missed required parameter: user-password";
+            }
+            String password = passValues[0] ?? "";
+
+            // ищемпользователя по логину
+            User? user = _dataContext.Users.Where(u => u.Login == login).FirstOrDefault();
+            if (user is not null)
+            {
+                // если нашли - проверяем пароль (derived key)
+                if (user.PasswordHash == _kdfServise.GetDerivedKey(password, user.PasswordSalt))
+                {
+                    // данные проверены - пользователь аутентифицирован - сохраняем в сессии
+                    HttpContext.Session.SetString("authUserId", user.Id.ToString());
+                    return "OK";
+                }
+            }
+            return $"Error Auth User: Login:{login}, Password:{password} check again";
         }
     }
 }

@@ -28,6 +28,7 @@ namespace WebApplication1.Controllers
 
         public IActionResult Index()
         {
+            ViewData["authUser"] = HttpContext.Session.GetString("authUserId");
             return View();
         }
 
@@ -37,6 +38,11 @@ namespace WebApplication1.Controllers
         }
 
         public IActionResult URL()
+        {
+            return View();
+        }
+
+        public IActionResult Sessions()
         {
             return View();
         }
