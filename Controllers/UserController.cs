@@ -178,5 +178,11 @@ namespace WebApplication1.Controllers
             }
             return $"Error Auth User: Login:{login}, Password:{password} check again";
         }
+        public IActionResult Logout()
+        {
+            HttpContext.Session.SetString("authUserId", string.Empty);
+            Response.Redirect("Index");
+            return View("Index");
+        }
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 using WebApplication1.Data;
+using WebApplication1.Middleware;
 using WebApplication1.Servises;
 using WebApplication1.Servises.Hash;
 using WebApplication1.Servises.KDF;
@@ -75,6 +76,9 @@ app.UseAuthorization();
 
 // включение механизма сессии
 app.UseSession();
+app.UseSessionAuth();
+
+app.UseMiddleware<SessionAuthMiddleware>();
 
 app.MapControllerRoute(
     name: "default",

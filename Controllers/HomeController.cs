@@ -28,7 +28,6 @@ namespace WebApplication1.Controllers
 
         public IActionResult Index()
         {
-            ViewData["authUser"] = HttpContext.Session.GetString("authUserId");
             return View();
         }
 
@@ -42,12 +41,22 @@ namespace WebApplication1.Controllers
             return View();
         }
 
-        public IActionResult Sessions()
+
+        public ViewResult Sessions([FromQuery(Name = "session-attr")]String? sessionAttr)
         {
+            if (sessionAttr is not null)
+            {
+                HttpContext.Session.SetString("session-attribute", sessionAttr);
+            }
             return View();
         }
 
         public IActionResult TagHelpers()
+        {
+            return View();
+        }
+
+        public IActionResult Middleware()
         {
             return View();
         }
