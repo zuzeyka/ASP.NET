@@ -35,6 +35,10 @@ namespace WebApplication1.Controllers
         {
             return View();
         }
+        public ViewResult Profile()
+        {
+            return View();
+        }
         public IActionResult Register(RegistrationModel registrationModel)
         {
             bool isModelValid = true;
@@ -180,9 +184,34 @@ namespace WebApplication1.Controllers
         }
         public IActionResult Logout()
         {
-            HttpContext.Session.SetString("authUserId", string.Empty);
-            Response.Redirect("Index");
-            return View("Index");
+            HttpContext.Session.Remove("authUserId");
+            return RedirectToAction("Index", "Home");
+            /* Redirect и другие вопросы с перенаправлением
+             * Browser             Server
+             * GET /home --------> (routing) ->Home::Index()->View()
+             * page <-------- 200 OK <!dictype html>...
+             * 
+             * <a Logout> --------> User::Logout()->Redirect(...)
+             * follow <------- 302 (Redirect) Location: /home
+             * GET /home ---------> (routing)->Home::Index()->View()
+             * page <-------- 200 OK <!doctype html>...
+             * 
+             * 301 - Permanent Redirect - переносим на постоянной основе,
+             * как правило, сайт изменил URL
+             * Произвольный редирект следуется GET-запросом, если необходимо
+             * сохранить начальный метод, то используется
+             * Redirect...PreserveMethod
+             * 
+             * 30x Redirect называют внешним, потому что информация
+             * доходит до браузера и изменяется URL в адресной строке
+             * http://..../addr1 ---> 302 Location /addr
+             * http://..../addr2 ----> 200 html
+             *                            addr1.asp
+             * http://..../addr1 (if..)\  addr2.asp
+             *                          \ addr3.asp
+             *                       forward - внутренее перенаправление
+             *  (в браузере /addr1, но фактично отображается addr3.asp)
+             */
         }
     }
 }
