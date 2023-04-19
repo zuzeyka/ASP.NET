@@ -15,5 +15,10 @@ namespace WebApplication1.Data.Entity
         public DateTime RegisterDt { get; set;}
         public DateTime? LastEnterDt { get; set; }
         public String? EmailCode { get; set; }
+
+        /// Добавлено 2023-04-19 робота с Profile
+        public Boolean IsEmailPublic { get; set; }
+        public Boolean IsRealNamePublic { get; set; }
+        public Boolean IsDtPublic { get; set; }
     }
 }

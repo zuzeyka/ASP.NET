@@ -35,9 +35,28 @@ namespace WebApplication1.Controllers
         {
             return View();
         }
-        public ViewResult Profile()
+        public IActionResult Profile(String id)
         {
-            return View();
+            _logger.LogInformation(id);
+            User? user = _dataContext.Users.FirstOrDefault(u => u.Login == id);
+            if (user != null)
+            {
+                Models.Home.User.ProfileModel model = new(user);
+                return View(model);
+            } 
+            else return NotFound();
+            /* Личная страничка / Профиль
+             * 1. Будет ли эта страничка другим пользователям?
+             * Да, пользователи могут просматривать профили других пользователей,
+             * но только те данные которые разрешил владелец.
+             * 2 Как должна формироваться адрес /User/Profile/???
+             * a) Id
+             * b) login
+             * Выбираем логин, в силу удобности распрастронения ссылки на профиль
+             * !! необходимо уникальность логина
+             
+             */
+
         }
         public IActionResult Register(RegistrationModel registrationModel)
         {
@@ -47,6 +66,11 @@ namespace WebApplication1.Controllers
             if (String.IsNullOrEmpty(registrationModel.Login))
             {
                 registerValidation.LoginMessage = "Login field can't be empty";
+                isModelValid = false;
+            }
+            if (_dataContext.Users.Any(u => u.Login == registrationModel.Login))
+            {
+                registerValidation.PasswordMessage = "Login field can't be not unique (this login is already used)";
                 isModelValid = false;
             }
             if (String.IsNullOrEmpty(registrationModel.Password))

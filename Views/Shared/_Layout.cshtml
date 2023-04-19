@@ -41,7 +41,7 @@
                 String userLogin =
                 Context.User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier)
                 .Value;
-                <a asp-controller="User" asp-action="Profile">
+                <a asp-controller="User" asp-action="Profile" asp-route-id="@userLogin">
                     <img src="~/avatars/@(userAvatar)"
                 alt="Avatar"
                 title="@(userLogin)"
