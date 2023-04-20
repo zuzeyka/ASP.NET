@@ -69,9 +69,20 @@
                     <div class="col-sm-3">
                       <h6 class="mb-0">Full Name</h6>
                     </div>
-                    <div class="col-sm-9 text-secondary">
-                      Kenneth Valdez
-                    </div>
+                      @if(Model.IsRealNamePublic || Model.IsPersonal)
+                      {
+                              <div class="col-sm-8 text-secondary" id="realname">@Model.RealName</div>
+                      }
+                      else
+                      {
+                              <div class="col-sm-8 text-secondary" id="realname">Name is private</div>
+                      }
+                      <div class="col-sm-1">
+                          @if (Model.IsPersonal)
+                          {
+                              <img src="~/img/icons/pencil.svg" role="button" data-ref-field="realname"/>
+                          }
+                      </div>
                   </div>
                   <hr>
                   <div class="row">
@@ -80,45 +91,69 @@
                     </div>
                     @if (Model.IsEmailPublic)
                     {
-                       <div class="col-sm-9 text-secondary">@Model.Email</div>
+                       <div id="email" class="col-sm-8 text-secondary">@Model.Email</div>
                     }
                     else
                     {
-                       <div class="col-sm-9 text-secondary">Email is private</div>
+                       <div id="email" class="col-sm-8 text-secondary">Email is private</div>
                     }
+                    <div class="col-sm-1">
+                        @if (Model.IsPersonal)
+                        {
+                              <img src="~/img/icons/pencil.svg" role="button" data-ref-field="email"/>
+                        }
+                      </div>
                   </div>
                   <hr>
                   <div class="row">
                     <div class="col-sm-3">
                       <h6 class="mb-0">Phone</h6>
                     </div>
-                    <div class="col-sm-9 text-secondary">
+                    <div class="col-sm-8 text-secondary">
                       (239) 816-9029
                     </div>
+                    <div class="col-sm-1">
+                        @if (Model.IsPersonal)
+                        {
+                          <img src="~/img/icons/pencil.svg"/>
+                        }
+                      </div>
                   </div>
                   <hr>
                   <div class="row">
                     <div class="col-sm-3">
                       <h6 class="mb-0">Mobile</h6>
                     </div>
-                    <div class="col-sm-9 text-secondary">
+                    <div class="col-sm-8 text-secondary">
                       (320) 380-4539
                     </div>
+                    <div class="col-sm-1">
+                        @if (Model.IsPersonal)
+                        {
+                          <img src="~/img/icons/pencil.svg"/>
+                        }
+                      </div>
                   </div>
                   <hr>
                   <div class="row">
                     <div class="col-sm-3">
                       <h6 class="mb-0">Address</h6>
                     </div>
-                    <div class="col-sm-9 text-secondary">
+                    <div class="col-sm-8 text-secondary">
                       Bay Area, San Francisco, CA
                     </div>
+                    <div class="col-sm-1">
+                        @if (Model.IsPersonal)
+                        {
+                          <img src="~/img/icons/pencil.svg"/>
+                        }
+                      </div>
                   </div>
                   <hr>
-                  <div class="row">
+                  @*<div class="row">
                     <div class="col-sm-12">
                       <a class="btn btn-info " target="__blank" href="https://www.bootdey.com/snippets/view/profile-edit-data-and-skills">Edit</a>
-                    </div>
+                    </div>*@
                   </div>
                 </div>
               </div>
@@ -178,8 +213,56 @@
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+               </div>
           </div>
-        </div>
-    </div>
+  </div>
+</div>
+<script>
+    let state = null;
+    let targetId = null;
+    let targetElement = null;
+    let flags = {}
+    document.addEventListener("DOMContentLoaded", () => {
+        for(let pencil of document.querySelectorAll("[data-ref-field]") ) {
+            pencil.addEventListener("click", editClick);
+            const key = pencil.getAttribute('data-ref-field');
+            flags[key] = false;
+        }
+    });
+    function editClick(e){
+        const elem = e.target;
+        targetId = elem.getAttribute("data-ref-field");
+        if(flags[targetId]){
+            elem.src="/img/icons/pencil.svg";
+            flags[targetId] = false;
+        }
+        else{
+            elem.src="/img/icons/pencil-fill.svg";
+            flags[targetId] = true;
+        }
+        console.log(targetId);
+        targetElement = document.getElementById(targetId);
+        targetElement.setAttribute("contenteditable", "true");
+        state = targetElement.textContent;
+        targetElement.focus();
+        targetElement.onblur = editFinished;
+        targetElement.onkeydown = editKeydown;
+    }
+    function editFinished(e){
+        const elem = e.target;
+        if(state !== targetElement.textContent){
+            if(confirm("Save changes?") ) {
+            console.log("Sending " + elem.id + "=" + elem.innerText);
+            }
+        }
+        elem.removeAttribute("contenteditable");
+    }
+    function editKeydown(e){
+        if(e.key === "Enter"){
+            e.target.blur();
+            for(let pencil of document.querySelectorAll("[data-ref-field]") ) {
+            pencil.src = "/img/icons/pencil.svg";
+            }
+        }
+    }
+</script>

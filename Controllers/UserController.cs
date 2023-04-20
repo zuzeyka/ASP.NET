@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using WebApplication1.Data;
 using WebApplication1.Data.Entity;
@@ -35,13 +36,23 @@ namespace WebApplication1.Controllers
         {
             return View();
         }
-        public IActionResult Profile(String id)
+        public IActionResult Profile([FromRoute]String id)
         {
             _logger.LogInformation(id);
             User? user = _dataContext.Users.FirstOrDefault(u => u.Login == id);
-            if (user != null)
+            if (user is not null)
             {
                 Models.Home.User.ProfileModel model = new(user);
+                // достаем ведомости про аутентификацию
+                if (HttpContext.User.Identity is not null && HttpContext.User.Identity.IsAuthenticated)
+                {
+                    String userLogin = HttpContext.User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier)
+                    .Value;
+                    if (userLogin == user.Login) // Профиль - свой (персональный)
+                    {
+                        model.IsPersonal = true;
+                    }
+                }
                 return View(model);
             } 
             else return NotFound();

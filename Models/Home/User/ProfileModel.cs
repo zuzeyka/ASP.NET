@@ -12,6 +12,8 @@
         public DateTime RegisterDt { get; set; }
         public DateTime? LastEnterDt { get; set; }
         public bool IsDatetimesPublic { get; set; }
+        // Является ли данный провиль персональным (для аутентифицированого пользователя)
+        public bool IsPersonal { get; set; }
 
         public ProfileModel(Data.Entity.User user)
         {
