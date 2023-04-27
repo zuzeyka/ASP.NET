@@ -5,9 +5,11 @@ using System.Text.RegularExpressions;
 using WebApplication1.Data;
 using WebApplication1.Data.Entity;
 using WebApplication1.Models.Home.User;
+using WebApplication1.Servises.Email;
 using WebApplication1.Servises.Hash;
 using WebApplication1.Servises.KDF;
 using WebApplication1.Servises.Random;
+using WebApplication1.Servises.Validation;
 
 namespace WebApplication1.Controllers
 {
@@ -18,24 +20,35 @@ namespace WebApplication1.Controllers
         private readonly DataContext _dataContext;
         private readonly IRandomServise _randomServise;
         private readonly IKdfServise _kdfServise;
+        private readonly IValidationService _validationService;
+        private readonly IEmailService _emailService;
 
-        public UserController(IHashServise hashService, ILogger<UserController> logger, DataContext dataContext = null, IRandomServise randomServise = null, IKdfServise kdfServise = null)
+        public UserController(IHashServise hashService, ILogger<UserController> logger, DataContext dataContext = null, IRandomServise randomServise = null, IKdfServise kdfServise = null, IValidationService validationService = null, IEmailService emailService = null)
         {
             _hashService = hashService;
             _logger = logger;
             _dataContext = dataContext;
             _randomServise = randomServise;
             _kdfServise = kdfServise;
+            _validationService = validationService;
+            _emailService = emailService;
         }
 
         public IActionResult Index()
         {
             return View();
         }
+
         public IActionResult Registration()
         {
             return View();
         }
+
+        public IActionResult EmailConfirmation()
+        {
+            return View();
+        }
+
         public IActionResult Profile([FromRoute]String id)
         {
             _logger.LogInformation(id);
@@ -105,18 +118,15 @@ namespace WebApplication1.Controllers
                 registerValidation.RepeatPasswordMessage = "Repeat Password field isn't match with Password field";
                 isModelValid = false;
             }
-            if (String.IsNullOrEmpty(registrationModel.Email))
+            if (_validationService.Validate(registrationModel.Email, ValidationTerms.NotEmpty))
             {
                 registerValidation.EmailMessage = "Email field can't be empty";
                 isModelValid = false;
             }
-            else
+            else if (!_validationService.Validate(registrationModel.Email, ValidationTerms.Email))
             {
-                String emailRegex = @"^[\w.%+-]+@[\w.-]+\.[a-zA-Z]{2,}$";
-                if (!Regex.IsMatch(registrationModel.Email, emailRegex))
-                {
-                    registerValidation.EmailMessage = "Not valid email";
-                }
+                registerValidation.EmailMessage = "Not valid email";
+                isModelValid = false;
             }
             if (String.IsNullOrEmpty(registrationModel.RealName))
             {
@@ -153,13 +163,15 @@ namespace WebApplication1.Controllers
             if (isModelValid)
             {
                 String salt = _randomServise.RandomString(16);
+                String confirmEmailCode = _randomServise.ConfirmCode(6);
+                // отправляем код подтверждения
                 User user = new()
                 {
                     Id = Guid.NewGuid(),
                     Login = registrationModel.Login,
                     RealName = registrationModel.RealName,
                     Email = registrationModel.Email,
-                    EmailCode = _randomServise.ConfirmCode(6),
+                    EmailCode = confirmEmailCode,
                     PasswordSalt = salt,
                     PasswordHash = _kdfServise.GetDerivedKey(registrationModel.Password, salt),
                     Avatar = savedName,
@@ -167,7 +179,17 @@ namespace WebApplication1.Controllers
                     LastEnterDt = null
                 };
                 _dataContext.Users.Add(user);
-                _dataContext.SaveChangesAsync();
+                _dataContext.SaveChanges();
+
+                _emailService.Send(
+                    "confirm_email",
+                    new Models.Email.ConfirmEmailModel
+                    {
+                        Email = user.Email,
+                        RealName = user.RealName,
+                        EmailCode = confirmEmailCode,
+                        ConfirmLink = "#"
+                    });
 
                 return View(registrationModel);
             }
@@ -246,6 +268,65 @@ namespace WebApplication1.Controllers
              *                          \ addr3.asp
              *                       forward - внутренее перенаправление
              *  (в браузере /addr1, но фактично отображается addr3.asp)
+             */
+        }
+        [HttpPut]   // метод доступний тільки для PUT запитів
+        public IActionResult Update([FromBody] UpdateRequestModel model)
+        {
+            UpdateResponseModel responseModel = new();
+            try
+            {
+                if (model is null) throw new Exception("No or empty data");
+                if (HttpContext.User.Identity?.IsAuthenticated == false)
+                {
+                    throw new Exception("UnAuthenticated");
+                }
+                User? user = _dataContext.Users.Find(
+                    Guid.Parse(
+                        HttpContext.User.Claims
+                        .First(c => c.Type == ClaimTypes.Sid)
+                        .Value
+                ));
+                if (user is null) throw new Exception("UnAuthorized");
+                switch (model.Field)
+                {
+                    case "realname":
+                        if(_validationService.Validate(model.Value, ValidationTerms.RealName))
+                        {
+                            user.RealName = model.Value;
+                            _dataContext.SaveChanges();
+                        }
+                        else throw new Exception(
+                                $"Validation error: field '{model.Field}' with value '{model.Value}'");
+                        break;
+                    case "email":
+                        if (_validationService.Validate(model.Value, ValidationTerms.Email))
+                        {
+                            user.Email = model.Value;
+                            _dataContext.SaveChanges();
+                        }
+                        else throw new Exception(
+                                $"Validation error: field '{model.Field}' with value '{model.Value}'");
+                        break;
+                    default:
+                        throw new Exception("Invalid 'Field' attribute");
+                }
+                responseModel.Status = "OK";
+                responseModel.Data = $"Field '{model.Field}' updated by value '{model.Value}'";
+            }
+            catch (Exception ex)
+            {
+                responseModel.Status = "Error";
+                responseModel.Data = ex.Message;
+            }
+
+            return Json(responseModel);
+
+            /* Метод для оновлення даних про користувача
+             * Приймає асинхронні запити з JSON даними, повертає JSON
+             * із результатом роботи.
+             * Приймає дані = описуємо модель цих даних
+             * Повертає дані = описуємо модель
              */
         }
     }

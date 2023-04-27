@@ -15,8 +15,9 @@ namespace WebApplication1.Controllers
         private readonly StampServise _stampServise;
         private readonly IHashServise _hashServise;
         private readonly DataContext _dataContext;
+        private readonly IConfiguration _configuration;
 
-        public HomeController(ILogger<HomeController> logger, DateServise dateServise, TimeServise timeServise, StampServise stampServise, IHashServise hashServise, DataContext dataContext = null)
+        public HomeController(ILogger<HomeController> logger, DateServise dateServise, TimeServise timeServise, StampServise stampServise, IHashServise hashServise, DataContext dataContext = null, IConfiguration configuration = null)
         {
             _logger = logger;
             _dateServise = dateServise;
@@ -24,6 +25,7 @@ namespace WebApplication1.Controllers
             _stampServise = stampServise;
             _hashServise = hashServise;
             _dataContext = dataContext;
+            _configuration = configuration;
         }
 
         public IActionResult Index()
@@ -48,6 +50,12 @@ namespace WebApplication1.Controllers
             {
                 HttpContext.Session.SetString("session-attribute", sessionAttr);
             }
+            return View();
+        }
+
+        public ViewResult EmailConfirmation()
+        {
+            ViewData["config"] = _configuration["Smtp:Gmail:Host"];
             return View();
         }
 

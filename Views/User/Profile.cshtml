@@ -28,7 +28,7 @@
                      <img src="/avatars/@(Model.Avatar)" 
                                  alt="@(Model.Login)" class="rounded-circle" width="150">
                     <div class="mt-3">
-                      <h4>@(Model.IsRealNamePublic ? Model.RealName : Model.Login)</h4>
+                      <h4 id="name-under-avatar">@(Model.IsRealNamePublic || Model.IsPersonal ? Model.RealName : Model.Login)</h4>
                       <p class="text-secondary mb-1">Full Stack Developer</p>
                       <p class="text-muted font-size-sm">Bay Area, San Francisco, CA</p>
                       <button class="btn btn-primary">Follow</button>
@@ -89,7 +89,7 @@
                     <div class="col-sm-3">
                       <h6 class="mb-0">Email</h6>
                     </div>
-                    @if (Model.IsEmailPublic)
+                    @if (Model.IsEmailPublic || Model.IsPersonal)
                     {
                        <div id="email" class="col-sm-8 text-secondary">@Model.Email</div>
                     }
@@ -218,51 +218,78 @@
   </div>
 </div>
 <script>
-    let state = null;
-    let targetId = null;
-    let targetElement = null;
-    let flags = {}
     document.addEventListener("DOMContentLoaded", () => {
-        for(let pencil of document.querySelectorAll("[data-ref-field]") ) {
+        for( let pencil of document.querySelectorAll("[data-ref-field]") ) {
             pencil.addEventListener("click", editClick);
-            const key = pencil.getAttribute('data-ref-field');
-            flags[key] = false;
         }
     });
-    function editClick(e){
-        const elem = e.target;
-        targetId = elem.getAttribute("data-ref-field");
-        if(flags[targetId]){
-            elem.src="/img/icons/pencil.svg";
-            flags[targetId] = false;
-        }
-        else{
-            elem.src="/img/icons/pencil-fill.svg";
-            flags[targetId] = true;
-        }
-        console.log(targetId);
-        targetElement = document.getElementById(targetId);
+    function editClick(e) {
+        const targetId = e.target.getAttribute("data-ref-field");
+        // console.log(targetId);
+        // e.target - <img.../> - елемент, по якому клік, міняємо зображення
+        e.target.oldSrc = e.target.src;
+        e.target.src = "/img/icons/save.svg";
+                        // "../../img/icons/save.svg" - відносний шлях, при зміні адреси (даної сторінки) стане не валідним
+                        // "~/img/icons/save.svg"; неправильно, ~ - символ Razor
+                        // "wwwroot/img/icons/save.svg" неправильно, wwwroot - корень сайту
+        const targetElement = document.getElementById(targetId);
+        // targetElement - <span id="realname"...>
         targetElement.setAttribute("contenteditable", "true");
-        state = targetElement.textContent;
         targetElement.focus();
-        targetElement.onblur = editFinished;
-        targetElement.onkeydown = editKeydown;
+        targetElement.onblur = editingFinished;
+        targetElement.onkeydown = editingKeydown;
+        // зберігаємо початковий стан (текст) як поле цього ж об'єкту (oldText)
+        targetElement.oldText = targetElement.innerText;
+        // знімаємо з кнопки click (відновимо після editingFinished)
+        e.target.removeEventListener("click", editClick);
     }
-    function editFinished(e){
-        const elem = e.target;
-        if(state !== targetElement.textContent){
-            if(confirm("Save changes?") ) {
-            console.log("Sending " + elem.id + "=" + elem.innerText);
-            }
+    function editingFinished(e) {
+        const elem = e.target;  // e.target -- targetElement - <span id="realname"...>
+        if( elem.innerText != elem.oldText && confirm( "Зберегти зміни?" ) ) {
+            const data = {  // формуємо дані за серверною моделлю (UpdateRequestModel)
+                field: elem.id,
+                value: elem.innerText
+            };
+            const dataStr = JSON.stringify(data);  // серіалізуємо дані
+            console.log("Sending " + dataStr);
+            window.fetch("/User/Update", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: dataStr
+            })
+            .then(r => {
+                // r - response, объект, который отвечает за первичный пакет HTTP
+                // на данном этапе можно узнать статус-код ответа, заголовки
+                if(r.status != 200){
+                    alert("Responce unsuccessfull");
+                    return;
+                }
+                // но для получения тела пакета следует запустить его получатель
+                return r.json(); // или r.text() / r.arrayBuffer() / r.blob()
+            })
+            .then(j => {
+                console.log(j);
+                if(j.status != "OK"){ // тут j.status - поле из объекта, что в теле ответа
+                    alert(j.data);
+                    // возобновить начальные данные (отменить изменение)
+                }
+                else{
+                    // продублировать изменение во всех полях с данным парамметром
+                }
+            });
         }
         elem.removeAttribute("contenteditable");
-    }
-    function editKeydown(e){
-        if(e.key === "Enter"){
-            e.target.blur();
-            for(let pencil of document.querySelectorAll("[data-ref-field]") ) {
-            pencil.src = "/img/icons/pencil.svg";
-            }
+        // відновлюємо зображення на кнопці-edit
+        const img = document.querySelector(`[data-ref-field=${elem.id}]`);
+        img.src = img.oldSrc;
+        // відновлюємо click на кнопці, але з затримкою
+        setTimeout(() => img.addEventListener("click", editClick), 250);
+        if(elem === document.getElementById("realname")){
+            const avatarName = document.getElementById("name-under-avatar");
+            avatarName.innerText = elem.innerText;
         }
+        
     }
 </script>
