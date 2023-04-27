@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using WebApplication1.Data;
 using WebApplication1.Data.Entity;
+using WebApplication1.Models;
 using WebApplication1.Models.Home.User;
 using WebApplication1.Servises.Email;
 using WebApplication1.Servises.Hash;
@@ -118,7 +119,7 @@ namespace WebApplication1.Controllers
                 registerValidation.RepeatPasswordMessage = "Repeat Password field isn't match with Password field";
                 isModelValid = false;
             }
-            if (_validationService.Validate(registrationModel.Email, ValidationTerms.NotEmpty))
+            if (!_validationService.Validate(registrationModel.Email, ValidationTerms.NotEmpty))
             {
                 registerValidation.EmailMessage = "Email field can't be empty";
                 isModelValid = false;
@@ -189,6 +190,13 @@ namespace WebApplication1.Controllers
                         RealName = user.RealName,
                         EmailCode = confirmEmailCode,
                         ConfirmLink = "#"
+                    });
+                _emailService.Send(
+                    "welcome_email",
+                    new Models.Email.WelcomeEmailModel
+                    {
+                        Email = user.Email,
+                        RealName = user.RealName,
                     });
 
                 return View(registrationModel);
@@ -328,6 +336,55 @@ namespace WebApplication1.Controllers
              * Приймає дані = описуємо модель цих даних
              * Повертає дані = описуємо модель
              */
+        }
+
+        [HttpPost]
+        public JsonResult ConfirmEmail([FromBody] string emailCode)
+        {
+            StatusDataModel model = new();
+
+            if (String.IsNullOrEmpty(emailCode))
+            {
+                model.Status = "406";
+                model.Data = "Empty code not acceptable";
+            }
+            else if (HttpContext.User.Identity?.IsAuthenticated == false)
+            {
+                model.Status = "401";
+                model.Data = "Unauthenticated";
+            }
+            else
+            {
+                User? user = _dataContext.Users.Find(
+                Guid.Parse(
+                HttpContext.User.Claims
+                .First(c => c.Type == ClaimTypes.Sid)
+                .Value
+                ));
+                if (user is null)
+                {
+                    model.Status = "403";
+                    model.Data = "Forbidden (UnAthorized)";
+                }
+                else if (user.EmailCode is null)
+                {
+                    model.Status = "208";
+                    model.Data = "Already confirmed";
+                }
+                else if (user.EmailCode != emailCode)
+                {
+                    model.Status = "406";
+                    model.Data = "Code not Accepted";
+                }
+                else
+                {
+                    user.EmailCode = null;
+                    _dataContext.SaveChanges();
+                    model.Status = "200";
+                    model.Data = "OK";
+                }
+            }
+            return Json(model); 
         }
     }
 }

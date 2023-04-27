@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using System.Text.Json;
 using WebApplication1.Data;
 using WebApplication1.Models;
 using WebApplication1.Servises;
@@ -55,6 +56,9 @@ namespace WebApplication1.Controllers
 
         public ViewResult EmailConfirmation()
         {
+            string jsonText = System.IO.File.ReadAllText("appsettings.json");
+            var jsonData = JsonSerializer.Deserialize<JsonElement>(jsonText);
+            ViewData["config-json"] = jsonData.ToString();
             ViewData["config"] = _configuration["Smtp:Gmail:Host"];
             return View();
         }

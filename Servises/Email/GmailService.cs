@@ -16,15 +16,15 @@ namespace WebApplication1.Servises.Email
             _logger = logger;
         }
 
-        public bool Send(string mailTemplate, object model)
+        public bool Send(String mailTemplate, object model)
         {
             String? template = null;
             String[] filenames = new String[]
             {
                 mailTemplate,
                 mailTemplate + ".html",
-                "Services/Email/" + mailTemplate,
-                "Services/Email/" + mailTemplate + ".html"
+                "Servises/Email/" + mailTemplate,
+                "Servises/Email/" + mailTemplate + ".html"
             };
             foreach (String filename in filenames)
             {

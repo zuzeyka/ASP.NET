@@ -8,6 +8,7 @@
         public string Login { get; set; }
         public string Email { get; set; }
         public bool IsEmailPublic { get; set; }
+        public bool IsEmailConfirmed { get; set; }
         public string Avatar { get; set; }
         public DateTime RegisterDt { get; set; }
         public DateTime? LastEnterDt { get; set; }
@@ -36,6 +37,7 @@
 
                 thisProp?.SetValue(this, prop.GetValue(user));
             }
+            this.IsEmailConfirmed = user.EmailCode is null;
         }
     }
 }
