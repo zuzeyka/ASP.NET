@@ -42,7 +42,10 @@
                 String userLogin =
                 Context.User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier)
                 .Value;
-                if(Model.IsEmailConfirmed)
+                String userCode =
+                Context.User.Claims.First(c => c.Type == ClaimTypes.Email)
+                .Value;
+                if(String.IsNullOrEmpty(userCode))
                 {
                   <a asp-controller="User" asp-action="Profile" asp-route-id="@userLogin">
                   <img src="~/avatars/@(userAvatar)"

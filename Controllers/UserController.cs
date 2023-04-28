@@ -4,7 +4,9 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using WebApplication1.Data;
 using WebApplication1.Data.Entity;
+using WebApplication1.Migrations;
 using WebApplication1.Models;
+using WebApplication1.Models.Email;
 using WebApplication1.Models.Home.User;
 using WebApplication1.Servises.Email;
 using WebApplication1.Servises.Hash;
@@ -180,24 +182,16 @@ namespace WebApplication1.Controllers
                     LastEnterDt = null
                 };
                 _dataContext.Users.Add(user);
-                _dataContext.SaveChanges();
 
-                _emailService.Send(
-                    "confirm_email",
-                    new Models.Email.ConfirmEmailModel
-                    {
-                        Email = user.Email,
-                        RealName = user.RealName,
-                        EmailCode = confirmEmailCode,
-                        ConfirmLink = "#"
-                    });
-                _emailService.Send(
-                    "welcome_email",
-                    new Models.Email.WelcomeEmailModel
-                    {
-                        Email = user.Email,
-                        RealName = user.RealName,
-                    });
+                // Если данные добавленны в БД, отправляем код подверждения на почту
+                // генерируем токен автоматческого подтверждения
+                var emailConfirmToken = _GenerateEmailConfirmCode(user);
+
+                _dataContext.SaveChangesAsync();
+
+                _SendConfirmEmail(user, emailConfirmToken, "confirm_email");
+
+                _SendConfirmEmail(user, emailConfirmToken, "welcome_email");
 
                 return View(registrationModel);
             }
@@ -211,6 +205,40 @@ namespace WebApplication1.Controllers
             // способ перейти на View под другим именем
             return View("Registration");
         }
+
+        private bool _SendConfirmEmail(Data.Entity.User user, 
+                                       Data.Entity.EmailConfirmToken emailConfirmToken,
+                                       String emailName)
+        {
+            // формируем ссылку: схема://домен/User/ConfirmToken?token=...
+            // схема - http или https домен(хост) - localhost:7572
+            String confirmLink = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host.Value}/User/ConfirmToken?token={emailConfirmToken.Id}";
+            return _emailService.Send(
+                emailName,
+                new Models.Email.ConfirmEmailModel
+                {
+                    Email = user.Email,
+                    RealName = user.RealName,
+                    EmailCode = user.EmailCode!,
+                    ConfirmLink = confirmLink
+                });
+        }
+
+        private Data.Entity.EmailConfirmToken _GenerateEmailConfirmCode(Data.Entity.User user)
+        {
+            Data.Entity.EmailConfirmToken emailConfirmToken = new()
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                UserEmail = user.Email,
+                Moment = DateTime.Now,
+                Used = 0
+            };
+
+            _dataContext.EmailConfirmTokens.Add(emailConfirmToken);
+            return emailConfirmToken;
+        }
+
         [HttpPost] // метод доступный только для POST запросов
         public String AuthUser()
         {
@@ -311,6 +339,8 @@ namespace WebApplication1.Controllers
                         if (_validationService.Validate(model.Value, ValidationTerms.Email))
                         {
                             user.Email = model.Value;
+                            user.EmailCode = _randomServise.ConfirmCode(6);
+                            _SendConfirmEmail(user, _GenerateEmailConfirmCode(user), "confirm_email");
                             _dataContext.SaveChanges();
                         }
                         else throw new Exception(
@@ -385,6 +415,73 @@ namespace WebApplication1.Controllers
                 }
             }
             return Json(model); 
+        }
+
+        [HttpGet]
+        public ViewResult ConfirmToken([FromQuery] String token)
+        {
+            ViewData["result"] = token;
+            try
+            {
+                var confirmToken = _dataContext.EmailConfirmTokens
+                    .Find(Guid.Parse(token))
+                    ?? throw new Exception();
+
+                var user = _dataContext.Users.Find(
+                    confirmToken.UserId)
+                    ?? throw new Exception();
+
+                if (user.Email != confirmToken.UserEmail)
+                    throw new Exception();
+
+                user.EmailCode = null;
+                confirmToken.Used += 1;
+                _dataContext.SaveChanges();
+                ViewData["result"] = "Congratulations, email now is confirmed";
+            }
+            catch
+            {
+                ViewData["result"] = "Verification failed, do not change the link from the email";
+            }
+            return View();
+        }
+
+        [HttpPatch]
+        public String ResendConfirmEmail()
+        {
+            if (HttpContext.User.Identity?.IsAuthenticated == false)
+            {
+                return "Unauthenticated";
+            }
+            try
+            {
+                User? user = _dataContext.Users.Find(
+                Guid.Parse(
+                HttpContext.User.Claims
+                .First(c => c.Type == ClaimTypes.Sid)
+                .Value
+                )) ?? throw new Exception();
+                // формируем новый код подтверждения
+                user.EmailCode = _randomServise.ConfirmCode(6);
+
+                // генерируем токен автоматического подтверждения
+                var emailConfirmToken = _GenerateEmailConfirmCode(user);
+
+                // сохраняем новый код и токен
+                _dataContext.SaveChangesAsync();
+
+                // отправляем письмо
+                if (_SendConfirmEmail(user, emailConfirmToken, "confirm_email"))
+                    return "OK";
+                else
+                    return "Send error";
+            }
+            catch
+            {
+                return "Unauthenticated";
+            }
+            
+            return "OK";
         }
     }
 }
