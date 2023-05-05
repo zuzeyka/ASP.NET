@@ -1,7 +1,6 @@
 ﻿using System.Security.Claims;
 using WebApplication1.Data;
 using WebApplication1.Data.Entity;
-using WebApplication1.Models.Home.User;
 
 namespace WebApplication1.Middleware
 {
@@ -45,7 +44,7 @@ namespace WebApplication1.Middleware
                             new Claim(ClaimTypes.Name, authUser.RealName),
                             new Claim(ClaimTypes.NameIdentifier, authUser.Login),
                             new Claim(ClaimTypes.UserData, authUser.Avatar ?? String.Empty),
-                            new Claim(ClaimTypes.Email, authUser.EmailCode)
+                            new Claim(ClaimTypes.Email, authUser.EmailCode ?? String.Empty)
                         };
                         // создаем владельца (Principal) с этими утверждениями
                         var principal = new ClaimsPrincipal(

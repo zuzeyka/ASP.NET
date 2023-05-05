@@ -54,6 +54,11 @@ namespace WebApplication1.Controllers
             return View();
         }
 
+        public ViewResult Page404()
+        {
+            return View();
+        }
+
         public ViewResult EmailConfirmation()
         {
             string jsonText = System.IO.File.ReadAllText("appsettings.json");
