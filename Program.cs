@@ -7,6 +7,7 @@ using WebApplication1.Servises.Email;
 using WebApplication1.Servises.Hash;
 using WebApplication1.Servises.KDF;
 using WebApplication1.Servises.Random;
+using WebApplication1.Servises.Transliterate;
 using WebApplication1.Servises.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +21,7 @@ builder.Services.AddSingleton<IRandomServise, RandomServiseV1>();
 builder.Services.AddSingleton<IKdfServise, HashKdfService>();
 builder.Services.AddSingleton<IValidationService, ValidationServiceV1>();
 builder.Services.AddSingleton<IEmailService, GmailService>();
+builder.Services.AddSingleton<ITransliterationService, TransliterationServiceUkr>();
 
 // регистрация контекста с подключением к MS SQL Server
 /*

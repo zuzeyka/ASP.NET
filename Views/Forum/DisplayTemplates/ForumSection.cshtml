@@ -1,5 +1,5 @@
 ﻿@model WebApplication1.Models.Forum.ForumSectionViewModel
-
+@using System.Security.Claims;          
 <div class="card mb-3">
     <div class="row g-0">
         <div class="col-md-2">
@@ -13,8 +13,8 @@
             </div>
             <div class="card-footer">
                 Started: @Model.CreatedDtString
-                Author: <img src="@Model.AuthorAvatarUrl" style="max-width:50px; max-height:50px" alt="Avatar"/>
-                @Model.AuthorName
+                Author: <img src="@Model.AuthorAvatarUrl" style="max-width:50px; max-height:50px; border-radius:50%" alt="Avatar"/>
+                <a asp-controller="User" asp-action="Profile" asp-route-id="@Model.AuthorName">@Model.AuthorName</a>
                 <a asp-action="Sections" asp-route-id="@Model.UrlIdString">Take a look</a>
             </div>
         </div>

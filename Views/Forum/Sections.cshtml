@@ -4,12 +4,12 @@
 }
 
 <div class="text-center">
-    <h1 class="display-4">Section</h1>
+    <h1 class="display-4">@ViewData["Title"]</h1>
 </div>
 
 @foreach(var Theme in Model.Themes)
 {
-    <p>@Theme.Title, @Theme.Description</p>
+    @Html.DisplayFor(m => Theme, "ForumTheme")
 }
 
 
@@ -17,7 +17,7 @@
 {
    <div class="row">
        <div class="col col-6">
-           <h5>Create new theme</h5>
+           <h5>Create new section</h5>
        @if (Model.CreateMessage is not null)
        {
            <h6>

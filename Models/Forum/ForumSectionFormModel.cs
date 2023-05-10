@@ -8,5 +8,7 @@ namespace WebApplication1.Models.Forum
         public String Title { get; set; } = null!;
         [FromForm(Name = "section-description")]
         public String Description { get; set; } = null!;
+        [FromForm(Name = "section-photo")]
+        public String? Photo { get; set; } = null!;
     }
 }

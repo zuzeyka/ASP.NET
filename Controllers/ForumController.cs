@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using WebApplication1.Data;
 using WebApplication1.Models.Forum;
+using WebApplication1.Servises.Transliterate;
 using WebApplication1.Servises.Validation;
 
 namespace WebApplication1.Controllers
@@ -12,12 +13,14 @@ namespace WebApplication1.Controllers
         private readonly DataContext _dataContext;
         private readonly ILogger<ForumController> _logger;
         private readonly IValidationService _validationService;
+        private readonly ITransliterationService _transliterationService;
 
-        public ForumController(DataContext dataContext, ILogger<ForumController> logger, IValidationService validationService)
+        public ForumController(DataContext dataContext, ILogger<ForumController> logger, IValidationService validationService, ITransliterationService transliterationService)
         {
             _dataContext = dataContext;
             _logger = logger;
             _validationService = validationService;
+            _transliterationService = transliterationService;
         }
 
         private int _counter = 0;
@@ -41,15 +44,15 @@ namespace WebApplication1.Controllers
                         Description = s.Description,
                         LogoUrl = $"/img/logos/section{Counter}.png",
                         CreatedDtString = DateTime.Today == s.CreatedDt.Date
-                            ? "Сьогодні " + s.CreatedDt.ToString("HH:mm")
+                            ? "Today " + s.CreatedDt.ToString("HH:mm")
                             : s.CreatedDt.ToString("dd.MM.yyyy HH:mm"),
-                        UrlIdString = s.Id.ToString(),
+                        UrlIdString = s.UrlId ?? s.Id.ToString(),
                         // AuthorName - RealName або Login в залежності від налагоджень 
                         AuthorName = s.Author.IsRealNamePublic
                             ? s.Author.RealName
                             : s.Author.Login,
                         AuthorAvatarUrl = s.Author.Avatar == null
-                            ? "/avatars/no-avatar.png"
+                            ? "/avatars/no-avatar.jpg"
                             : $"/avatars/{s.Author.Avatar}"
                     })
                     .ToList()
@@ -78,22 +81,37 @@ namespace WebApplication1.Controllers
 
         public ViewResult Sections([FromRoute] String id)
         {
+            Guid sectionId;
+            try
+            {
+                sectionId = Guid.Parse(id);
+            }
+            catch
+            {
+                sectionId = _dataContext.Sections.First(s => s.UrlId == id).Id;
+            }
             ForumSectionModel model = new()
             {
                 UserCanCreate = HttpContext.User.Identity?.IsAuthenticated == true,
-                SectionId = id,
+                SectionId = sectionId.ToString(),
                 Themes = _dataContext
                     .Themes
-                    .Where(t => t.DeleteDt == null && t.SectionId == Guid.Parse(id))
+                    .Include(t => t.Author)
+                    .Where(t => t.DeletedDt == null && t.SectionId == sectionId)
                     .Select(t => new ForumThemeViewModel()
                     {
                         Title = t.Title,
                         Description = t.Description,
-                        CreatedDtString = DateTime.Today == t.CreateDt.Date
-                            ? "Today " + t.CreateDt.ToString("HH:mm")
-                            : t.CreateDt.ToString("dd.MM.yyyy HH:mm"),
+                        CreatedDtString = DateTime.Today == t.CreatedDt.Date
+                            ? "Today " + t.CreatedDt.ToString("HH:mm")
+                            : t.CreatedDt.ToString("dd.MM.yyyy HH:mm"),
                         UrlIdString = t.Id.ToString(),
                         SectionId = t.SectionId.ToString(),
+                        AuthorName = t.Author.IsRealNamePublic
+                                        ? t.Author.RealName
+                                        : t.Author.Login,
+                        AuthorAvatarUrl = $"/avatars/{t.Author.Avatar ?? "no-avatar.jpg"}",
+                        ProfileCreatedDt = t.CreatedDt
                     })
                     .ToList()
             };
@@ -120,6 +138,67 @@ namespace WebApplication1.Controllers
             return View(model);
         }
 
+        public IActionResult Themes([FromRoute] String id)
+        {
+            Guid themeId;
+            try
+            {
+                themeId = Guid.Parse(id);
+            }
+            catch
+            {
+                themeId = Guid.Empty; // _dataContext.Themes.First(s => s.UrlId == id).Id;
+            }
+            var theme = _dataContext.Themes.Find(themeId);
+            var user = _dataContext.Users.Find(theme.AuthorId);
+            if (theme == null)
+            {
+                return NotFound();
+            }
+            ForumThemesModel model = new()
+            {
+                UserCanCreate = HttpContext.User.Identity?.IsAuthenticated == true,
+                Title = theme.Title,
+                ThemeId = id,
+                Topics = _dataContext
+                .Topics
+                .Where(t => t.DeletedDt == null && t.ThemeId == themeId)
+                .Select(t => new ForumTopicViewModel()
+                {
+                    Title = t.Title,
+                    Description = t.Description,
+                    CreatedDtString = DateTime.Today == t.CreatedDt.Date
+                            ? "Today " + t.CreatedDt.ToString("HH:mm")
+                            : t.CreatedDt.ToString("dd.MM.yyyy HH:mm"),
+                    UrlIdString = t.Id.ToString(),
+                    AuthorAvatarUrl = $"/avatars/{user.Avatar ?? "no-avatar.jpg"}",
+                    AuthorName = user.IsRealNamePublic
+                                        ? user.RealName
+                                        : user.Login
+                })
+                .ToList()
+            };
+            if (HttpContext.Session.GetString("CreateSectionMessage") is String message)
+            {
+                _logger.LogInformation(id);
+                model.CreateMessage = message;
+                model.IsMessagePositive = HttpContext.Session.GetInt32("IsMessagePositive") == 1;
+                if (model.IsMessagePositive == false)
+                {
+                    model.FormModel = new()
+                    {
+                        Title = HttpContext.Session.GetString("SavedTitle")!,
+                        Description = HttpContext.Session.GetString("SavedDescription")!
+                    };
+                    HttpContext.Session.Remove("SavedTitle");
+                    HttpContext.Session.Remove("SavedDescription");
+                }
+                HttpContext.Session.Remove("CreateSectionMessage");
+                HttpContext.Session.Remove("IsMessagePositive");
+            }
+            return View(model);
+        }
+
         private void HandleInvalidForm(string errorMessage, string savedTitle, string savedDescription)
         {
             HttpContext.Session.SetInt32("IsMessagePositive", 0);
@@ -131,8 +210,8 @@ namespace WebApplication1.Controllers
         [HttpPost]
         public RedirectToActionResult CreateSection(ForumSectionFormModel formModel)
         {
-            _logger.LogInformation("Title: {t}, Description: {d}",
-                formModel.Title, formModel.Description);
+            _logger.LogInformation("Title: {t}, Description: {d}, Photo: {p}",
+                formModel.Title, formModel.Description, formModel.Photo);
 
             if(!_validationService.Validate(formModel.Title, ValidationTerms.NotEmpty))
             {
@@ -147,12 +226,21 @@ namespace WebApplication1.Controllers
                 try
                 {
                     Guid userId = Guid.Parse(HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Sid)?.Value);
+                    String trans = _transliterationService.Transliterate(formModel.Title);
+                    String urlId = trans;
+                    int n = 2;
+                    while (_dataContext.Sections.Any(s => s.UrlId == urlId))
+                    {
+                        urlId = $"{trans}{n++}";
+                    }
                     _dataContext.Sections.Add(new()
                     {
                         Id = Guid.NewGuid(),
                         Title = formModel.Title,
                         Description = formModel.Description,
-                        CreatedDt = DateTime.Now
+                        CreatedDt = DateTime.Now,
+                        AuthorId = userId,
+                        UrlId = urlId
                     });
                     _dataContext.SaveChanges();
                     HttpContext.Session.SetInt32("IsMessagePositive", 1);
@@ -189,8 +277,8 @@ namespace WebApplication1.Controllers
                         Id = Guid.NewGuid(),
                         Title = formModel.Title,
                         Description = formModel.Description,
-                        CreateDt = DateTime.Now,
-                        AutorId = userId,
+                        CreatedDt = DateTime.Now,
+                        AuthorId = userId,
                         SectionId = Guid.Parse(formModel.SectionId)
                     });
                     _dataContext.SaveChanges();
@@ -204,7 +292,49 @@ namespace WebApplication1.Controllers
                 }
 
             }
-            return RedirectToAction(nameof(Sections), new {id = formModel.SectionId});
+            return RedirectToAction(
+                nameof(Sections),
+                new { id = formModel.SectionId });  // TODO: id = UrlId ?? SectionId
+        }
+
+        [HttpPost]
+        public RedirectToActionResult CreateTopic(ForumTopicFormModel formModel)
+        {
+            Guid userId;
+            if (!_validationService.Validate(formModel.Title, ValidationTerms.NotEmpty))
+            {
+                HandleInvalidForm("Name can't be empty", formModel.Title, formModel.Description);
+            }
+            else if (!_validationService.Validate(formModel.Description, ValidationTerms.NotEmpty))
+            {
+                HandleInvalidForm("Description can't be empty", formModel.Title, formModel.Description);
+            }
+            else
+            {
+                try
+                {
+                    userId = Guid.Parse(HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Sid)?.Value);
+                    _dataContext.Topics.Add(new()
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = formModel.Title,
+                        Description = formModel.Description,
+                        CreatedDt = DateTime.Now,
+                        AuthorId = userId,
+                        ThemeId = Guid.Parse(formModel.ThemeId)
+                    });
+                    _dataContext.SaveChanges();
+                    HttpContext.Session.SetInt32("IsMessagePositive", 1);
+                    HttpContext.Session.SetString("CreateSectionMessage",
+                        "Added successfully");
+                }
+                catch
+                {
+                    HandleInvalidForm("Authorization denied", formModel.Title, formModel.Description);
+                }
+
+            }
+            return RedirectToAction(nameof(Themes), new {id = formModel.ThemeId});
         }
     }
 }

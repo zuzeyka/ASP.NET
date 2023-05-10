@@ -4,7 +4,6 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using WebApplication1.Data;
 using WebApplication1.Data.Entity;
-using WebApplication1.Migrations;
 using WebApplication1.Models;
 using WebApplication1.Models.Email;
 using WebApplication1.Models.Home.User;
