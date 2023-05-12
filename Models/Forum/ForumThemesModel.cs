@@ -9,6 +9,6 @@
 
         public String? CreateMessage { get; set; }
         public bool? IsMessagePositive { get; set; }
-        public ForumTopicViewModel FormModel { get; set; } = null!;
+        public ForumTopicFormModel FormModel { get; set; } = null!;
     }
 }

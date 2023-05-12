@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using WebApplication1.Data;
+using WebApplication1.Data.Entity;
 using WebApplication1.Models.Forum;
 using WebApplication1.Servises.Transliterate;
 using WebApplication1.Servises.Validation;
@@ -199,6 +200,65 @@ namespace WebApplication1.Controllers
             return View(model);
         }
 
+        public IActionResult Topics([FromRoute] string id)
+        {
+            // ForumTopicsModel ForumPostFormModel ForumPostViewModel
+            Guid topicId;
+            try
+            {
+                topicId = Guid.Parse(id);
+            }
+            catch
+            {
+                topicId = Guid.Empty; // _dataContext.Themes.First(s => s.UrlId == id).Id;
+            }
+            var topic = _dataContext.Topics.Find(topicId);
+            if (topic == null)
+            {
+                return NotFound();
+            }
+            ForumTopicModel model = new()
+            {
+                UserCanCreate = HttpContext.User.Identity?.IsAuthenticated == true,
+                Title = topic.Title,
+                Description = topic.Description,
+                TopicId = id,
+                Posts = _dataContext
+                .Posts
+                .Include(t => t.Author)
+                .Include(t => t.Reply)
+                .Where(t => t.DeletedDt == null && t.TopicId == topicId)
+                .Select(t => new ForumPostViewModel()
+                {
+                    Content = t.Content,
+                    AuthorName = t.Author.IsRealNamePublic ? t.Author.RealName : t.Author.Login,
+                    AuthorAvatarUrl = $"/avatars/{t.Author.Avatar ?? "no-avatar.jpg"}"
+                    
+                })
+                .ToList()
+            };
+
+            if (HttpContext.Session.GetString("CreateSectionMessage") is String message)
+            {
+                _logger.LogInformation(id);
+                model.CreateMessage = message;
+                model.IsMessagePositive = HttpContext.Session.GetInt32("IsMessagePositive") == 1;
+                if (model.IsMessagePositive == false)
+                {
+                    model.FormModel = new()
+                    {
+                        Content = HttpContext.Session.GetString("SavedTitle")!,
+                        ReplyId = HttpContext.Session.GetString("SavedDescription")!
+                    };
+                    HttpContext.Session.Remove("SavedTitle");
+                    HttpContext.Session.Remove("SavedDescription");
+                }
+                HttpContext.Session.Remove("CreateSectionMessage");
+                HttpContext.Session.Remove("IsMessagePositive");
+            }
+            return View(model);
+        }
+
         private void HandleInvalidForm(string errorMessage, string savedTitle, string savedDescription)
         {
             HttpContext.Session.SetInt32("IsMessagePositive", 0);
@@ -335,6 +395,43 @@ namespace WebApplication1.Controllers
 
             }
             return RedirectToAction(nameof(Themes), new {id = formModel.ThemeId});
+        }
+
+        [HttpPost]
+        public RedirectToActionResult CreatePost(ForumPostFormModel formModel)
+        {
+            Guid userId;
+            if (!_validationService.Validate(formModel.Content, ValidationTerms.NotEmpty))
+            {
+                HandleInvalidForm("Content can't be empty", formModel.Content, formModel.ReplyId);
+            }
+            else
+            {
+                try
+                {
+                    userId = Guid.Parse(HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Sid)?.Value);
+                    _dataContext.Posts.Add(new()
+                    {
+                        Id = Guid.NewGuid(),
+                        Content = formModel.Content,
+                        ReplyId = String.IsNullOrEmpty(formModel.ReplyId)
+                        ? null
+                        : Guid.Parse(formModel.ReplyId),
+                        CreatedDt = DateTime.Now,
+                        AuthorId = userId,
+                        TopicId = Guid.Parse(formModel.TopicId)
+                    });
+                    _dataContext.SaveChanges();
+                    HttpContext.Session.SetInt32("IsMessagePositive", 1);
+                    HttpContext.Session.SetString("CreateSectionMessage",
+                        "Added successfully");
+                }
+                catch
+                {
+                    HandleInvalidForm("Authorization denied", formModel.Content, formModel.ReplyId);
+                }
+            }
+            return RedirectToAction(nameof(Topics), new { id = formModel.TopicId });
         }
     }
 }
