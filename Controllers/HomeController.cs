@@ -29,6 +29,11 @@ namespace WebApplication1.Controllers
             _configuration = configuration;
         }
 
+        public ViewResult WebApi()
+        {
+            return View();
+        }
+
         public IActionResult Index()
         {
             return View();
