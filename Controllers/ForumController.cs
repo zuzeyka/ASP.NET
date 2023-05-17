@@ -30,12 +30,14 @@ namespace WebApplication1.Controllers
         public IActionResult Index()
         {
             Counter = 0;
+            String? userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Sid)?.Value;
             ForumIndexModel model = new()
             {
                 UserCanCreate = HttpContext.User.Identity?.IsAuthenticated == true,
                 Sections = _dataContext
                     .Sections
                     .Include(s => s.Author)   // включити навігаційну властивість Author
+                    .Include(s => s.RateList)
                     .Where(s => s.DeletedDt == null)
                     .OrderBy(s => s.CreatedDt)
                     .AsEnumerable()  // IQueriable -> IEnumerable
@@ -48,13 +50,19 @@ namespace WebApplication1.Controllers
                             ? "Today " + s.CreatedDt.ToString("HH:mm")
                             : s.CreatedDt.ToString("dd.MM.yyyy HH:mm"),
                         UrlIdString = s.UrlId ?? s.Id.ToString(),
+                        IdString = s.Id.ToString(),
                         // AuthorName - RealName або Login в залежності від налагоджень 
                         AuthorName = s.Author.IsRealNamePublic
                             ? s.Author.RealName
                             : s.Author.Login,
                         AuthorAvatarUrl = s.Author.Avatar == null
                             ? "/avatars/no-avatar.jpg"
-                            : $"/avatars/{s.Author.Avatar}"
+                            : $"/avatars/{s.Author.Avatar}",
+                        // Rating data
+                        LikesCount = s.RateList.Count(r => r.Rating > 0),
+                        DislikesCount = s.RateList.Count(r => r.Rating < 0),
+                        GivenRating = userId == null ? null 
+                        : s.RateList.FirstOrDefault(r => r.UserId == Guid.Parse(userId))?.Rating,
                     })
                     .ToList()
             };
@@ -91,6 +99,7 @@ namespace WebApplication1.Controllers
             {
                 sectionId = _dataContext.Sections.First(s => s.UrlId == id).Id;
             }
+            String? userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Sid)?.Value;
             ForumSectionModel model = new()
             {
                 UserCanCreate = HttpContext.User.Identity?.IsAuthenticated == true,
@@ -98,7 +107,9 @@ namespace WebApplication1.Controllers
                 Themes = _dataContext
                     .Themes
                     .Include(t => t.Author)
+                    .Include(t => t.RateList)
                     .Where(t => t.DeletedDt == null && t.SectionId == sectionId)
+                    .AsEnumerable()
                     .Select(t => new ForumThemeViewModel()
                     {
                         Title = t.Title,
@@ -112,7 +123,11 @@ namespace WebApplication1.Controllers
                                         ? t.Author.RealName
                                         : t.Author.Login,
                         AuthorAvatarUrl = $"/avatars/{t.Author.Avatar ?? "no-avatar.jpg"}",
-                        ProfileCreatedDt = t.CreatedDt
+                        ProfileCreatedDt = t.CreatedDt,
+                        LikesCount = t.RateList.Count(r => r.Rating > 0),
+                        DislikesCount = t.RateList.Count(r => r.Rating < 0),
+                        GivenRating = userId == null ? null
+                        : t.RateList.FirstOrDefault(r => r.UserId == Guid.Parse(userId))?.Rating
                     })
                     .ToList()
             };

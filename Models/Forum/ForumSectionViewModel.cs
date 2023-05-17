@@ -7,10 +7,15 @@
         public String LogoUrl { get; set; } = null!;
         public String CreatedDtString { get; set; } = null!;
         public String UrlIdString { get; set; } = null!;
-
+        public String IdString { get; set; } = null!;
 
         // Author data
         public String AuthorName { get; set; } = null!;
         public String AuthorAvatarUrl { get; set; } = null!;
+
+        // Rating data
+        public int LikesCount { get; set; }
+        public int DislikesCount { get; set; }
+        public int? GivenRating { get; set; }
     }
 }

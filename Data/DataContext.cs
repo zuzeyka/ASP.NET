@@ -28,11 +28,20 @@ namespace WebApplication1.Data
                 .HasOne(s => s.Author)  // NavyProp
                 .WithMany()             // Empty - ref by type (User Author)
                 .HasForeignKey(s => s.AuthorId);
+            modelBuilder.Entity<Entity.Section>()
+                .HasMany(s => s.RateList)
+                .WithOne()
+                .HasForeignKey(r => r.ItemId);
 
             modelBuilder.Entity<Entity.Theme>()
-                .HasOne(s => s.Author)
+                .HasOne(t => t.Author)
                 .WithMany()
                 .HasForeignKey(s => s.AuthorId);
+
+            modelBuilder.Entity<Entity.Theme>()
+                .HasMany(t => t.RateList)
+                .WithOne()
+                .HasForeignKey(r => r.ItemId);
 
             modelBuilder.Entity<Entity.Post>()
                 .HasOne(p => p.Author)

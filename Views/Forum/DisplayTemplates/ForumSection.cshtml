@@ -11,11 +11,46 @@
                 <p class="card-text">@Model.Description</p>
                 <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p>
             </div>
-            <div class="card-footer">
-                Started: @Model.CreatedDtString
-                Author: <img src="@Model.AuthorAvatarUrl" style="max-width:50px; max-height:50px; border-radius:50%" alt="Avatar"/>
-                <a asp-controller="User" asp-action="Profile" asp-route-id="@Model.AuthorName">@Model.AuthorName</a>
-                <a asp-action="Sections" asp-route-id="@Model.UrlIdString">Take a look</a>
+            <div class="card-footer d-flex align-items-center">
+                <div class="mx-3">
+                    Started: <br />
+                    @Model.CreatedDtString
+                </div>
+                <div>
+                    Author: <br />
+                    <img src="@Model.AuthorAvatarUrl" style="max-width:50px; max-height:50px; border-radius:50%" alt="Avatar"/>
+                    <a asp-controller="User" asp-action="Profile" asp-route-id="@Model.AuthorName">@Model.AuthorName</a>
+                </div>
+                <span class="g-color-gray-dark-v4" 
+                      style="margin-left: 3em"
+                      data-rating="@Model.IdString" data-rating-value="1"
+                      data-rating-given="@(Model.GivenRating == 1 ? "true" : "false")"
+                      role="button">
+                    @if(Model.GivenRating == 1)
+                    {
+                        <i class="bi-hand-thumbs-up-fill"></i>
+                    }
+                    else
+                    {
+                        <i class="bi-hand-thumbs-up"></i>
+                    }
+                    @Model.LikesCount
+                </span>
+                <span class="g-color-gray-dark-v4 mx-3"
+                      data-rating="@Model.IdString" data-rating-value="-1"
+                      data-rating-given="@(Model.GivenRating == -1 ? "true" : "false")"
+                      role="button">
+                      @if(Model.GivenRating == -1)
+                      {
+                          <i class="bi-hand-thumbs-down-fill"></i>
+                      }
+                      else
+                      {
+                          <i class="bi-hand-thumbs-down"></i>
+                      }
+                    @Model.DislikesCount
+                </span>
+                <a class="ms-auto" asp-action="Sections" asp-route-id="@Model.UrlIdString">Take a look</a>
             </div>
         </div>
     </div>
